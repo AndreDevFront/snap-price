@@ -15,7 +15,7 @@
 snap-price/
 ├── apps/
 │   ├── mobile/          # React Native + Expo Router v4
-│   └── api/             # NestJS REST API (Sprint 2)
+│   └── api/             # NestJS REST API
 ├── packages/
 │   └── ui/              # Design System compartilhado
 └── turbo.json
@@ -27,14 +27,14 @@ snap-price/
 
 | Sprint | Período | Status |
 |--------|---------|--------|
-| Sprint 1 — Fundação | Semana 1-2 | 🟡 Em andamento |
-| Sprint 2 — Core Feature | Semana 3-4 | ⬜ Pendente |
-| Sprint 3 — Auth + Persistência | Semana 5-6 | ⬜ Pendente |
+| Sprint 1 — Fundação | Semana 1-2 | ✅ Concluído |
+| Sprint 2 — Core Feature | Semana 3-4 | ✅ Concluído |
+| Sprint 3 — Auth + Persistência | Semana 5-6 | 🟡 Em andamento |
 | Sprint 4 — Polish + Deploy | Semana 7-8 | ⬜ Pendente |
 
 ---
 
-## 🛠 Sprint 1 — Fundação
+## ✅ Sprint 1 — Fundação
 
 - [x] Setup monorepo Turborepo
 - [x] Expo Router v4 com tabs + stack navigation
@@ -42,21 +42,23 @@ snap-price/
 - [x] Tela Home com histórico mockado
 - [x] Tela de câmera com Expo Camera
 
-## ⚙️ Sprint 2 — Core Feature
+## ✅ Sprint 2 — Core Feature
 
-- [ ] Backend NestJS + endpoint `/analyze`
-- [ ] Integração OpenAI Vision
-- [ ] Tela de resultado com preços e confiança
-- [ ] TanStack Query + Zustand
+- [x] Backend NestJS + endpoint `POST /api/v1/analyze`
+- [x] Integração OpenAI Vision (GPT-4o) com fallback mock
+- [x] Tela de resultado conectada ao dado real
+- [x] TanStack Query `useMutation` + Zustand store
+- [x] `analyzeImage` service + `useAnalyze` hook
+- [x] Dockerfile + docker-compose para a API
 
-## 🔐 Sprint 3 — Auth + Persistência
+## 🟡 Sprint 3 — Auth + Persistência
 
 - [ ] Tela de login/cadastro
 - [ ] JWT + Prisma + PostgreSQL
 - [ ] Histórico real salvo no banco
 - [ ] Perfil do usuário
 
-## ✨ Sprint 4 — Polish + Deploy
+## ⬜ Sprint 4 — Polish + Deploy
 
 - [ ] Animações Reanimated 3
 - [ ] Testes Maestro E2E
@@ -65,31 +67,48 @@ snap-price/
 
 ---
 
-## 📦 Como rodar
+## ⚙️ Como rodar
 
+### Pré-requisitos
+- Node.js >= 20
+- npm >= 10
+
+### 1. Instalar dependências
 ```bash
-# Instalar dependências
 npm install
+```
 
-# Rodar todos os apps em paralelo
-npm run dev
+### 2. Configurar variáveis de ambiente
+```bash
+# API
+cp apps/api/.env.example apps/api/.env
+# Edite apps/api/.env e adicione sua OPENAI_API_KEY
 
-# Rodar só o mobile
-npm run dev --filter=mobile
+# Mobile
+cp apps/mobile/.env.example apps/mobile/.env
+```
 
-# Rodar só a API
+### 3. Rodar a API
+```bash
 npm run dev --filter=api
+# ou com Docker:
+cd apps/api && docker-compose up
+```
+
+### 4. Rodar o app mobile
+```bash
+npm run dev --filter=mobile
 ```
 
 ---
 
-## 🧰 Stack Completa
+## 🛠 Stack Completa
 
 **Mobile:** React Native · Expo SDK 52 · Expo Router v4 · TypeScript · Reanimated 3 · TanStack Query · Zustand · Expo Camera · Expo IAP
 
-**Backend:** NestJS · TypeScript · Prisma · PostgreSQL · JWT · OpenAI Vision API
+**Backend:** NestJS · TypeScript · Prisma · PostgreSQL · JWT · OpenAI Vision API (GPT-4o)
 
-**Infra:** Turborepo · EAS Build · EAS Submit · GitHub Actions
+**Infra:** Turborepo · Docker · EAS Build · EAS Submit · GitHub Actions
 
 ---
 

@@ -1,30 +1,58 @@
-import { AnalyzeResponseDto } from '../types/analyze';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3333/api/v1';
-
-/**
- * Envia uma foto para o endpoint /analyze e retorna a avaliação de preço.
- */
-export async function analyzeImage(photoUri: string): Promise<AnalyzeResponseDto> {
-  const formData = new FormData();
-
-  // React Native aceita objetos no formato { uri, name, type } no FormData
-  formData.append('image', {
-    uri: photoUri,
-    name: 'photo.jpg',
-    type: 'image/jpeg',
-  } as unknown as Blob);
-
-  const response = await fetch(`${API_BASE_URL}/analyze`, {
-    method: 'POST',
-    body: formData,
-    // Não definir Content-Type manualmente — o fetch coloca o boundary correto
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options.headers },
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error((error as any)?.message ?? `Erro ${response.status}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message ?? 'Erro desconhecido');
   }
-
-  return response.json() as Promise<AnalyzeResponseDto>;
+  return res.json();
 }
+
+export async function analyzeImage(photoUri: string, token?: string) {
+  const form = new FormData();
+  form.append('image', { uri: photoUri, name: 'photo.jpg', type: 'image/jpeg' } as any);
+  const res = await fetch(`${BASE_URL}/api/v1/analyze`, {
+    method: 'POST',
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Falha na análise');
+  return res.json();
+}
+
+export const authApi = {
+  register: (body: { email: string; password: string; name?: string }) =>
+    request<{ access_token: string; user: { id: string; email: string } }>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  login: (body: { email: string; password: string }) =>
+    request<{ access_token: string; user: { id: string; email: string } }>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  me: (token: string) =>
+    request<{ id: string; email: string; name?: string; createdAt: string }>('/api/v1/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+};
+
+export const historyApi = {
+  list: (token: string, page = 1) =>
+    request<{ items: any[]; meta: any }>(`/api/v1/history?page=${page}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  stats: (token: string) =>
+    request<{ total: number; avgConfidence: number; totalValue: number }>('/api/v1/history/stats', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  remove: (token: string, id: string) =>
+    request(`/api/v1/history/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+};

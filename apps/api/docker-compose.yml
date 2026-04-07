@@ -1,14 +1,29 @@
-version: '3.9'
+version: '3.8'
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: snapprice
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   api:
     build: .
-    ports:
-      - '3333:3333'
+    restart: unless-stopped
+    depends_on:
+      - postgres
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - NODE_ENV=development
-      - PORT=3333
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run dev
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/snapprice
+      JWT_SECRET: ${JWT_SECRET:-snap-price-secret}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PORT: 3000
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:

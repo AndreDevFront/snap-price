@@ -1,81 +1,42 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View } from 'react-native';
-import { tokens } from 'ui';
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
-
-interface TabIconProps {
-  name: IoniconsName;
-  color: string;
-  size: number;
-  focused: boolean;
-}
-
-function TabIcon({ name, color, size, focused }: TabIconProps) {
-  return (
-    <View
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: focused ? `${tokens.colors.primary}22` : 'transparent',
-      }}
-    >
-      <Ionicons name={name} size={size} color={color} />
-    </View>
-  );
-}
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: tokens.colors.surface,
-          borderTopColor: tokens.colors.border,
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: tokens.colors.primary,
-        tabBarInactiveTintColor: tokens.colors.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: -4,
-        },
+        tabBarStyle: { backgroundColor: '#0F0F0F', borderTopColor: '#1C1C1C' },
+        tabBarActiveTintColor: '#F59E0B',
+        tabBarInactiveTintColor: '#6B7280',
+        headerStyle: { backgroundColor: '#0F0F0F' },
+        headerTintColor: '#F9FAFB',
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
+        name="index"\n        options={{
           title: 'Início',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name={focused ? 'home' : 'home-outline'} color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="camera"
         options={{
           title: 'Avaliar',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name={focused ? 'camera' : 'camera-outline'} color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="camera" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'Histórico',
+          tabBarIcon: ({ color, size }) => <Ionicons name="time" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name={focused ? 'person' : 'person-outline'} color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />
     </Tabs>

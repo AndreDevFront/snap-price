@@ -1,0 +1,116 @@
+import React, { useState } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useMutation } from '@tanstack/react-query';
+import { authApi } from '../src/services/api';
+import { useAuthStore } from '../src/store/useAuthStore';
+
+export default function LoginScreen() {
+  const router = useRouter();
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      isRegister
+        ? authApi.register({ email, password, name })
+        : authApi.login({ email, password }),
+    onSuccess: (data) => {
+      setAuth(data.access_token, data.user);
+      router.replace('/(tabs)');
+    },
+  });
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.inner}>
+        <View style={styles.logo}>
+          <Text style={styles.logoText}>📸 SnapPrice</Text>
+          <Text style={styles.tagline}>Avalie qualquer item em segundos</Text>
+        </View>
+
+        <View style={styles.form}>
+          {isRegister && (
+            <TextInput
+              style={styles.input}
+              placeholder="Seu nome"
+              placeholderTextColor="#6B7280"
+              value={name}
+              onChangeText={setName}
+            />
+          )}
+          <TextInput
+            style={styles.input}
+            placeholder="E-mail"
+            placeholderTextColor="#6B7280"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            placeholderTextColor="#6B7280"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+
+          {mutation.isError && (
+            <Text style={styles.error}>
+              {(mutation.error as Error).message}
+            </Text>
+          )}
+
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => mutation.mutate()}
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending
+              ? <ActivityIndicator color="#000" />
+              : <Text style={styles.btnText}>{isRegister ? 'Criar conta' : 'Entrar'}</Text>
+            }
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setIsRegister(!isRegister)}>
+            <Text style={styles.toggle}>
+              {isRegister ? 'Já tenho conta → Entrar' : 'Não tenho conta → Criar'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F0F0F' },
+  inner: { flex: 1, justifyContent: 'center', padding: 24 },
+  logo: { alignItems: 'center', marginBottom: 40 },
+  logoText: { color: '#F9FAFB', fontSize: 32, fontWeight: '800' },
+  tagline: { color: '#6B7280', fontSize: 14, marginTop: 8 },
+  form: { gap: 12 },
+  input: {
+    backgroundColor: '#1C1C1C', color: '#F9FAFB', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 16,
+    borderWidth: 1, borderColor: '#2D2D2D',
+  },
+  btn: {
+    backgroundColor: '#F59E0B', borderRadius: 12,
+    paddingVertical: 16, alignItems: 'center', marginTop: 8,
+  },
+  btnText: { color: '#000', fontWeight: '700', fontSize: 16 },
+  toggle: { color: '#F59E0B', textAlign: 'center', marginTop: 12, fontSize: 14 },
+  error: { color: '#EF4444', fontSize: 13, textAlign: 'center' },
+});

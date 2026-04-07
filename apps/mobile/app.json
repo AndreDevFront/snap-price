@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "SnapPrice",
+    "slug": "snap-price",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "snapprice",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F0F0F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.andredevfront.snapprice",
+      "infoPlist": {
+        "NSCameraUsageDescription": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado.",
+        "NSPhotoLibraryUsageDescription": "Acesse sua galeria para avaliar fotos de itens já tiradas."
+      }
+    },
+    "android": {
+      "package": "com.andredevfront.snapprice",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0F0F0F"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

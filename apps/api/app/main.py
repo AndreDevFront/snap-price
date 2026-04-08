@@ -10,6 +10,8 @@ app = FastAPI(
     title="SnapPrice API",
     version="1.0.0",
     description="API de avaliação de preços por imagem usando OpenAI Vision",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
 )
 
 app.add_middleware(
@@ -20,7 +22,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+PREFIX = "/api/v1"
+
 app.include_router(health.router, tags=["health"])
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(analyze.router, prefix="/analyze", tags=["analyze"])
-app.include_router(history.router, prefix="/history", tags=["history"])
+app.include_router(auth.router, prefix=f"{PREFIX}/auth", tags=["auth"])
+app.include_router(analyze.router, prefix=f"{PREFIX}/analyze", tags=["analyze"])
+app.include_router(history.router, prefix=f"{PREFIX}/history", tags=["history"])

@@ -17,8 +17,10 @@ python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 bcrypt = "^4.2.0"
 python-multipart = "^0.0.17"
 openai = "^1.58.1"
+pydantic = {extras = ["email"], version = "^2.10.0"}
 pydantic-settings = "^2.7.0"
 python-dotenv = "^1.0.1"
+email-validator = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 taskipy = "^1.13.0"

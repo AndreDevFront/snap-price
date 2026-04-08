@@ -1,41 +1,56 @@
-# SnapPrice API
+# SnapPrice API — FastAPI
 
-> NestJS REST API — implementada na **Sprint 2**.
+Backend da aplicação SnapPrice construído com **FastAPI + SQLAlchemy + Alembic**.
 
-## Stack planejada
+## Stack
 
-- **NestJS** — framework principal
-- **TypeScript** — strict mode
-- **Prisma** — ORM (Sprint 3)
-- **PostgreSQL** — banco de dados (Sprint 3)
-- **OpenAI Vision API** — análise de imagens
-- **JWT** — autenticação (Sprint 3)
-- **Docker** — containerização
+- **FastAPI** — framework web async
+- **SQLAlchemy 2.0** — ORM com Mapped columns
+- **Alembic** — migrations
+- **PostgreSQL** — banco de dados
+- **OpenAI Vision (gpt-4o)** — análise de imagens
+- **JWT** (python-jose) — autenticação
+- **Passlib + bcrypt** — hash de senhas
 
-## Endpoint principal
-
-```
-POST /analyze
-Content-Type: multipart/form-data
-
-{ image: File }
-
-Response:
-{
-  name: string
-  category: string
-  estimatedPrice: number
-  priceRange: { min: number; max: number }
-  confidence: number
-  platforms: Array<{ name: string; price: number }>
-  tips: string[]
-}
-```
-
-## Rodar (Sprint 2+)
+## Setup
 
 ```bash
-cd apps/api
-npm install
-npm run dev
+# 1. Cria e ativa o ambiente virtual
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # Linux/Mac
+
+# 2. Instala as dependências
+pip install -r requirements.txt
+
+# 3. Copia o .env
+copy .env.example .env        # Windows
+cp .env.example .env          # Linux/Mac
+# Edita o .env com suas credenciais
+
+# 4. Roda as migrations
+alembic upgrade head
+
+# 5. Seed (opcional)
+python scripts/seed.py
+
+# 6. Sobe o servidor
+uvicorn app.main:app --reload --port 3000
 ```
+
+## Endpoints
+
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/health` | ❌ | Health check |
+| POST | `/auth/register` | ❌ | Cadastro |
+| POST | `/auth/login` | ❌ | Login |
+| GET | `/auth/me` | ✅ | Perfil do usuário |
+| POST | `/analyze` | ✅ | Analisa imagem |
+| GET | `/history` | ✅ | Histórico de análises |
+
+## Docs
+
+Com o servidor rodando, acesse:
+- Swagger UI: http://localhost:3000/docs
+- ReDoc: http://localhost:3000/redoc

@@ -17,6 +17,7 @@ export default function HistoryScreen() {
     queryKey: ['history'],
     queryFn: () => historyApi.list(token!),
     enabled: !!token,
+    refetchOnWindowFocus: true,
   });
 
   const deleteMutation = useMutation({
@@ -49,6 +50,10 @@ export default function HistoryScreen() {
   const items = data?.items ?? [];
   const stats = data?.stats;
 
+  // confidence vem como 0-100 direto da API (ex: 85.0 = 85%)
+  const fmtConfidence = (v: number) => `${Math.round(v)}%`;
+  const fmtPrice = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
   return (
     <View style={styles.container}>
       {stats && (
@@ -58,11 +63,11 @@ export default function HistoryScreen() {
             <Text style={styles.statLabel}>Avaliações</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{Math.round(stats.avg_confidence * 100)}%</Text>
+            <Text style={styles.statValue}>{fmtConfidence(stats.avg_confidence)}</Text>
             <Text style={styles.statLabel}>Precisão média</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>R$ {stats.total_value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</Text>
+            <Text style={styles.statValue}>R$ {fmtPrice(stats.total_value)}</Text>
             <Text style={styles.statLabel}>Valor total</Text>
           </View>
         </View>
@@ -86,10 +91,10 @@ export default function HistoryScreen() {
           >
             <View style={styles.cardHeader}>
               <Text style={styles.cardName} numberOfLines={1}>{item.item_name}</Text>
-              <Text style={styles.cardConfidence}>{Math.round(item.confidence * 100)}%</Text>
+              <Text style={styles.cardConfidence}>{fmtConfidence(item.confidence)}</Text>
             </View>
             <Text style={styles.cardPrice}>
-              R$ {item.estimated_min.toLocaleString('pt-BR')} – R$ {item.estimated_max.toLocaleString('pt-BR')}
+              R$ {fmtPrice(item.estimated_min)} – R$ {fmtPrice(item.estimated_max)}
             </Text>
             <Text style={styles.cardDate}>
               {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}

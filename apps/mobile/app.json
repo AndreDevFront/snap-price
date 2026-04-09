@@ -39,7 +39,9 @@
         {
           "cameraPermission": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado."
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

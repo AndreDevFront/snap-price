@@ -1,14 +1,16 @@
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+FROM python:3.12-slim
 
-FROM node:20-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-EXPOSE 3333
-CMD ["node", "dist/main"]
+
+RUN pip install poetry
+
+COPY pyproject.toml poetry.lock ./
+
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000"]

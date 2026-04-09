@@ -14,7 +14,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export async function analyzeImage(photoUri: string, token?: string) {
   const form = new FormData();
-  form.append('image', { uri: photoUri, name: 'photo.jpg', type: 'image/jpeg' } as any);
+  form.append('file', { uri: photoUri, name: 'photo.jpg', type: 'image/jpeg' } as any);
   const res = await fetch(`${BASE_URL}/api/v1/analyze`, {
     method: 'POST',
     body: form,
@@ -41,13 +41,32 @@ export const authApi = {
     }),
 };
 
+export interface AnalysisItem {
+  id: string;
+  item_name: string;
+  estimated_min: number;
+  estimated_max: number;
+  avg_price: number;
+  confidence: number;
+  platforms: any[];
+  tips: string[];
+  created_at: string;
+}
+
+export interface HistoryStats {
+  total: number;
+  avg_confidence: number;
+  total_value: number;
+}
+
+export interface HistoryResponse {
+  items: AnalysisItem[];
+  stats: HistoryStats;
+}
+
 export const historyApi = {
-  list: (token: string, page = 1) =>
-    request<{ items: any[]; meta: any }>(`/api/v1/history?page=${page}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-  stats: (token: string) =>
-    request<{ total: number; avgConfidence: number; totalValue: number }>('/api/v1/history/stats', {
+  list: (token: string) =>
+    request<HistoryResponse>('/api/v1/history', {
       headers: { Authorization: `Bearer ${token}` },
     }),
   remove: (token: string, id: string) =>

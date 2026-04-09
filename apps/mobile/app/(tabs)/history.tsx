@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { historyApi } from '../../src/services/api';
+import { historyApi, AnalysisItem } from '../../src/services/api';
 import { useAuthStore } from '../../src/store/useAuthStore';
 
 export default function HistoryScreen() {
@@ -16,12 +16,6 @@ export default function HistoryScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['history'],
     queryFn: () => historyApi.list(token!),
-    enabled: !!token,
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['history-stats'],
-    queryFn: () => historyApi.stats(token!),
     enabled: !!token,
   });
 
@@ -53,6 +47,7 @@ export default function HistoryScreen() {
   }
 
   const items = data?.items ?? [];
+  const stats = data?.stats;
 
   return (
     <View style={styles.container}>
@@ -63,11 +58,11 @@ export default function HistoryScreen() {
             <Text style={styles.statLabel}>Avaliações</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{Math.round(stats.avgConfidence * 100)}%</Text>
+            <Text style={styles.statValue}>{Math.round(stats.avg_confidence * 100)}%</Text>
             <Text style={styles.statLabel}>Precisão média</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>R$ {stats.totalValue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</Text>
+            <Text style={styles.statValue}>R$ {stats.total_value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</Text>
             <Text style={styles.statLabel}>Valor total</Text>
           </View>
         </View>
@@ -83,21 +78,21 @@ export default function HistoryScreen() {
             <Text style={styles.emptySubtitle}>Fotografe um item para começar</Text>
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: AnalysisItem }) => (
           <TouchableOpacity
             style={styles.card}
             onPress={() => router.push({ pathname: '/result', params: { id: item.id } })}
-            onLongPress={() => confirmDelete(item.id, item.itemName)}
+            onLongPress={() => confirmDelete(item.id, item.item_name)}
           >
             <View style={styles.cardHeader}>
-              <Text style={styles.cardName} numberOfLines={1}>{item.itemName}</Text>
+              <Text style={styles.cardName} numberOfLines={1}>{item.item_name}</Text>
               <Text style={styles.cardConfidence}>{Math.round(item.confidence * 100)}%</Text>
             </View>
             <Text style={styles.cardPrice}>
-              R$ {item.estimatedMin.toLocaleString('pt-BR')} – R$ {item.estimatedMax.toLocaleString('pt-BR')}
+              R$ {item.estimated_min.toLocaleString('pt-BR')} – R$ {item.estimated_max.toLocaleString('pt-BR')}
             </Text>
             <Text style={styles.cardDate}>
-              {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </Text>
           </TouchableOpacity>
         )}

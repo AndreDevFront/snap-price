@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { analyzeImage } from '../services/api';
 import { useAnalyzeStore } from '../store/useAnalyzeStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { router } from 'expo-router';
 
 /**
@@ -11,9 +12,10 @@ import { router } from 'expo-router';
  */
 export function useAnalyze() {
   const { setAnalyzing, setResult, setError } = useAnalyzeStore();
+  const token = useAuthStore((state) => state.token);
 
   const mutation = useMutation({
-    mutationFn: analyzeImage,
+    mutationFn: (photoUri: string) => analyzeImage(photoUri, token ?? undefined),
     onMutate: () => {
       setAnalyzing(true);
     },

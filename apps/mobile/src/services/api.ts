@@ -1,4 +1,11 @@
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+// Garante que a URL sempre tem protocolo http://
+function buildBaseUrl(url: string): string {
+  if (!url) return 'http://localhost:3000';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `http://${url}`;
+}
+
+const BASE_URL = buildBaseUrl(process.env.EXPO_PUBLIC_API_URL ?? '');
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -7,7 +14,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message ?? 'Erro desconhecido');
+    // FastAPI retorna erros de validação no campo "detail"
+    const message =
+      typeof err.detail === 'string'
+        ? err.detail
+        : Array.isArray(err.detail)
+        ? err.detail.map((e: any) => e.msg).join(', ')
+        : err.message ?? 'Erro desconhecido';
+    throw new Error(message);
   }
   return res.json();
 }

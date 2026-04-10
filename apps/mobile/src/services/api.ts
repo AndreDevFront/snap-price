@@ -14,7 +14,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    // FastAPI retorna erros de validação no campo "detail"
     const message =
       typeof err.detail === 'string'
         ? err.detail
@@ -38,19 +37,26 @@ export async function analyzeImage(photoUri: string, token?: string) {
   return res.json();
 }
 
+// Tipo espelhando exatamente o UserResponse do backend
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string | null;
+}
+
 export const authApi = {
   register: (body: { email: string; password: string; name?: string }) =>
-    request<{ access_token: string; user: { id: string; email: string } }>('/api/v1/auth/register', {
+    request<{ access_token: string }>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
   login: (body: { email: string; password: string }) =>
-    request<{ access_token: string; user: { id: string; email: string } }>('/api/v1/auth/login', {
+    request<{ access_token: string }>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
   me: (token: string) =>
-    request<{ id: string; email: string; name?: string; createdAt: string }>('/api/v1/auth/me', {
+    request<UserProfile>('/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     }),
 };

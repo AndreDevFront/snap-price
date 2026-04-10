@@ -1,56 +1,61 @@
-# SnapPrice API — FastAPI
+# SnapPrice API
 
-Backend da aplicação SnapPrice construído com **FastAPI + SQLAlchemy + Alembic**.
+Backend FastAPI + PostgreSQL + SQLAlchemy.
 
-## Stack
+## Setup local (desenvolvimento)
 
-- **FastAPI** — framework web async
-- **SQLAlchemy 2.0** — ORM com Mapped columns
-- **Alembic** — migrations
-- **PostgreSQL** — banco de dados
-- **OpenAI Vision (gpt-4o)** — análise de imagens
-- **JWT** (python-jose) — autenticação
-- **Passlib + bcrypt** — hash de senhas
-
-## Setup
-
+### 1. Crie o `.env`
 ```bash
-# 1. Cria e ativa o ambiente virtual
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # Linux/Mac
-
-# 2. Instala as dependências
-pip install -r requirements.txt
-
-# 3. Copia o .env
-copy .env.example .env        # Windows
-cp .env.example .env          # Linux/Mac
-# Edita o .env com suas credenciais
-
-# 4. Roda as migrations
-alembic upgrade head
-
-# 5. Seed (opcional)
-python scripts/seed.py
-
-# 6. Sobe o servidor
-uvicorn app.main:app --reload --port 3000
+cp .env.example .env
+# Edite com sua OPENAI_API_KEY
 ```
 
-## Endpoints
+> O `.env.example` já usa `localhost` como host do banco — correto para dev local.
 
-| Método | Rota | Auth | Descrição |
-|--------|------|------|-----------|
-| GET | `/health` | ❌ | Health check |
-| POST | `/auth/register` | ❌ | Cadastro |
-| POST | `/auth/login` | ❌ | Login |
-| GET | `/auth/me` | ✅ | Perfil do usuário |
-| POST | `/analyze` | ✅ | Analisa imagem |
-| GET | `/history` | ✅ | Histórico de análises |
+### 2. Suba o banco via Docker
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
 
-## Docs
+### 3. Ative o ambiente virtual e instale dependências
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-Com o servidor rodando, acesse:
-- Swagger UI: http://localhost:3000/docs
-- ReDoc: http://localhost:3000/redoc
+### 4. Rode as migrations
+```bash
+alembic upgrade head
+```
+
+### 5. Suba a API
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload
+```
+
+Acesse: http://localhost:3000/docs
+
+---
+
+## Produção (Docker completo)
+
+```bash
+# Sobe API + banco juntos
+docker-compose up -d
+```
+
+> Em produção o host do banco é `postgres` (nome do container na rede Docker).
+> Defina `DATABASE_URL` via variável de ambiente — não commite o `.env` com secrets reais.
+
+---
+
+## Variáveis de ambiente
+
+| Variável | Descrição | Dev default |
+|---|---|---|
+| `DATABASE_URL` | Connection string do PostgreSQL | `postgresql://postgres:postgres@localhost:5432/snapprice` |
+| `OPENAI_API_KEY` | Chave da OpenAI | — |
+| `SECRET_KEY` | Chave JWT | qualquer string segura |
+| `ALGORITHM` | Algoritmo JWT | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiração do token | `10080` (7 dias) |

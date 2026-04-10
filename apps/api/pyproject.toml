@@ -30,14 +30,14 @@ httpx = "^0.28.1"
 ruff = "^0.8.0"
 
 [tool.taskipy.tasks]
-dev      = { cmd = "uvicorn app.main:app --reload --port 3000", help = "Sobe o servidor em modo dev" }
+dev      = { cmd = "uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload", help = "Sobe o servidor em modo dev (acessivel na rede local)" }
 migrate  = { cmd = "alembic upgrade head", help = "Roda todas as migrations" }
-rollback = { cmd = "alembic downgrade -1", help = "Desfaz a última migration" }
+rollback = { cmd = "alembic downgrade -1", help = "Desfaz a ultima migration" }
 makemig  = { cmd = "alembic revision --autogenerate -m", help = "Cria uma nova migration" }
 seed     = { cmd = "python scripts/seed.py", help = "Popula o banco com dados iniciais" }
 test     = { cmd = "pytest", help = "Roda os testes" }
-lint     = { cmd = "ruff check app", help = "Verifica o código" }
-format   = { cmd = "ruff format app", help = "Formata o código" }
+lint     = { cmd = "ruff check app", help = "Verifica o codigo" }
+format   = { cmd = "ruff format app", help = "Formata o codigo" }
 
 [tool.ruff]
 line-length = 100

@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { tokens } from 'ui';
 import { useAnalyzeStore } from '../src/store/useAnalyzeStore';
 
-// Fallback mock caso acesse direto sem análise
 const FALLBACK = {
   name: 'iPhone 13 Pro 128GB',
   category: 'Smartphones',
@@ -26,6 +25,32 @@ const FALLBACK = {
   ],
 };
 
+/** Monta a URL de busca de cada plataforma com o nome do produto */
+function buildSearchUrl(platformName: string, productName: string): string {
+  const q = encodeURIComponent(productName);
+  switch (platformName.toLowerCase()) {
+    case 'mercado livre':
+      return `https://lista.mercadolivre.com.br/${q}`;
+    case 'olx':
+      return `https://www.olx.com.br/brasil?q=${q}`;
+    case 'facebook':
+      return `https://www.facebook.com/marketplace/search/?query=${q}`;
+    case 'ebay':
+      return `https://www.ebay.com/sch/i.html?_nkw=${q}`;
+    case 'enjoei':
+      return `https://www.enjoei.com.br/search?q=${q}`;
+    case 'shopee':
+      return `https://shopee.com.br/search?keyword=${q}`;
+    case 'americanas':
+      return `https://www.americanas.com.br/busca/${q}`;
+    case 'amazon':
+      return `https://www.amazon.com.br/s?k=${q}`;
+    default:
+      // fallback: usa a URL original da plataforma
+      return platformName;
+  }
+}
+
 export default function ResultScreen() {
   const { currentResult, currentPhoto, clearCurrent } = useAnalyzeStore();
   const data = currentResult ?? FALLBACK;
@@ -42,22 +67,22 @@ export default function ResultScreen() {
     router.push('/(tabs)/camera');
   }
 
-  async function handleOpenPlatform(url: string, name: string) {
+  async function handleOpenPlatform(platformName: string) {
+    const url = buildSearchUrl(platformName, data.name);
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Erro', `Não foi possível abrir ${name}`);
+        Alert.alert('Erro', `Não foi possível abrir ${platformName}`);
       }
     } catch {
-      Alert.alert('Erro', `Não foi possível abrir ${name}`);
+      Alert.alert('Erro', `Não foi possível abrir ${platformName}`);
     }
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
           <Ionicons name="close" size={22} color={tokens.colors.text} />
@@ -69,16 +94,10 @@ export default function ResultScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Foto tirada (se disponível) */}
         {currentPhoto && (
-          <Image
-            source={{ uri: currentPhoto }}
-            style={styles.photo}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: currentPhoto }} style={styles.photo} resizeMode="cover" />
         )}
 
-        {/* Item info */}
         <View style={styles.itemCard}>
           <Text style={styles.itemName}>{data.name}</Text>
           <View style={styles.itemMeta}>
@@ -91,7 +110,6 @@ export default function ResultScreen() {
           </View>
         </View>
 
-        {/* Price hero */}
         <View style={styles.priceCard}>
           <Text style={styles.priceLabel}>Preço estimado</Text>
           <Text style={styles.priceValue}>
@@ -111,7 +129,6 @@ export default function ResultScreen() {
           </View>
         </View>
 
-        {/* Platforms */}
         <Text style={styles.sectionTitle}>Preços por plataforma</Text>
         <View style={styles.platformGrid}>
           {data.platforms.map((p) => (
@@ -119,7 +136,7 @@ export default function ResultScreen() {
               key={p.name}
               style={styles.platformCard}
               activeOpacity={0.7}
-              onPress={() => handleOpenPlatform(p.url, p.name)}
+              onPress={() => handleOpenPlatform(p.name)}
             >
               <Text style={styles.platformName}>{p.name}</Text>
               <Text style={styles.platformPrice}>R$ {p.price.toLocaleString('pt-BR')}</Text>
@@ -128,7 +145,6 @@ export default function ResultScreen() {
           ))}
         </View>
 
-        {/* Tips */}
         <Text style={styles.sectionTitle}>Dicas para vender melhor</Text>
         <View style={styles.tipsCard}>
           {data.tips.map((tip, i) => (

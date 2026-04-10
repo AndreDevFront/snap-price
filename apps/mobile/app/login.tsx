@@ -17,12 +17,19 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
 
   const mutation = useMutation({
-    mutationFn: () =>
-      isRegister
-        ? authApi.register({ email, password, name })
-        : authApi.login({ email, password }),
-    onSuccess: (data) => {
-      setAuth(data.access_token, data.user);
+    mutationFn: async () => {
+      // 1. Login ou registro — retorna só o token
+      const data = isRegister
+        ? await authApi.register({ email, password, name })
+        : await authApi.login({ email, password });
+
+      // 2. Busca os dados completos do usuário com o token
+      const user = await authApi.me(data.access_token);
+
+      return { token: data.access_token, user };
+    },
+    onSuccess: ({ token, user }) => {
+      setAuth(token, user);
       router.replace('/(tabs)');
     },
   });

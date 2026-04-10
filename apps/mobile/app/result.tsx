@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Linking, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,6 +40,19 @@ export default function ResultScreen() {
   function handleNewAnalysis() {
     clearCurrent();
     router.push('/(tabs)/camera');
+  }
+
+  async function handleOpenPlatform(url: string, name: string) {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Erro', `Não foi possível abrir ${name}`);
+      }
+    } catch {
+      Alert.alert('Erro', `Não foi possível abrir ${name}`);
+    }
   }
 
   return (
@@ -102,7 +115,12 @@ export default function ResultScreen() {
         <Text style={styles.sectionTitle}>Preços por plataforma</Text>
         <View style={styles.platformGrid}>
           {data.platforms.map((p) => (
-            <TouchableOpacity key={p.name} style={styles.platformCard} activeOpacity={0.7}>
+            <TouchableOpacity
+              key={p.name}
+              style={styles.platformCard}
+              activeOpacity={0.7}
+              onPress={() => handleOpenPlatform(p.url, p.name)}
+            >
               <Text style={styles.platformName}>{p.name}</Text>
               <Text style={styles.platformPrice}>R$ {p.price.toLocaleString('pt-BR')}</Text>
               <Ionicons name="open-outline" size={12} color={tokens.colors.primary} />

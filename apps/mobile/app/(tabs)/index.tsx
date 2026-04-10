@@ -25,7 +25,7 @@ function HistoryCard({ item }: { item: AnalysisItem }) {
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.7}
-      onPress={() => router.push('/result')}
+      onPress={() => router.push({ pathname: '/result', params: { id: item.id } })}
     >
       <View style={styles.cardEmoji}>
         <Text style={styles.emoji}>📦</Text>
@@ -55,7 +55,7 @@ function HistoryCard({ item }: { item: AnalysisItem }) {
 }
 
 export default function HomeScreen() {
-  const { user, token, isAuthenticated } = useAuthStore();
+  const { user, token } = useAuthStore();
   const firstName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'Usuário';
 
   const { data } = useQuery({

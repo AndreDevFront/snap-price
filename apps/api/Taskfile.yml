@@ -1,0 +1,54 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Sobe o banco e inicia a API com reload
+    deps: [db]
+    cmds:
+      - uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload
+
+  db:
+    desc: Sobe apenas o PostgreSQL via Docker
+    cmds:
+      - docker-compose -f docker-compose.dev.yml up -d
+    silent: true
+
+  db:stop:
+    desc: Para o PostgreSQL
+    cmds:
+      - docker-compose -f docker-compose.dev.yml down
+
+  db:logs:
+    desc: Mostra logs do PostgreSQL
+    cmds:
+      - docker-compose -f docker-compose.dev.yml logs -f postgres
+
+  migrate:
+    desc: Roda as migrations pendentes
+    cmds:
+      - alembic upgrade head
+
+  migrate:create:
+    desc: Cria uma nova migration (uso: task migrate:create -- nome_da_migration)
+    cmds:
+      - alembic revision --autogenerate -m "{{.CLI_ARGS}}"
+
+  migrate:rollback:
+    desc: Desfaz a ultima migration
+    cmds:
+      - alembic downgrade -1
+
+  install:
+    desc: Instala dependencias com Poetry
+    cmds:
+      - poetry install
+
+  lint:
+    desc: Roda o linter
+    cmds:
+      - ruff check .
+
+  test:
+    desc: Roda os testes
+    cmds:
+      - pytest

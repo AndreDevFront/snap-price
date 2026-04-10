@@ -68,8 +68,9 @@ export interface AnalysisItem {
   estimated_max: number;
   avg_price: number;
   confidence: number;
-  platforms: any[];
+  platforms: { name: string; price: number; url: string }[];
   tips: string[];
+  image_url?: string | null;
   created_at: string;
 }
 
@@ -87,6 +88,10 @@ export interface HistoryResponse {
 export const historyApi = {
   list: (token: string) =>
     request<HistoryResponse>('/api/v1/history', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  getById: (token: string, id: string) =>
+    request<AnalysisItem>(`/api/v1/history/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
   remove: (token: string, id: string) =>

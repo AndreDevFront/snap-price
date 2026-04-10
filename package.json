@@ -22,9 +22,6 @@
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
-  "dependencies": {
-    "expo-asset": "~11.0.5"
-  },
   "resolutions": {
     "react": "19.2.0",
     "react-dom": "19.2.0",

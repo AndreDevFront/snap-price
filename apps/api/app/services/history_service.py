@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.analysis import Analysis
@@ -26,3 +27,26 @@ def get_history(user_id: str, db: Session) -> HistoryResponse:
             total_value=round(total_value, 2),
         ),
     )
+
+
+def get_by_id(user_id: str, analysis_id: str, db: Session) -> Analysis:
+    analysis = (
+        db.query(Analysis)
+        .filter(Analysis.id == analysis_id, Analysis.user_id == user_id)
+        .first()
+    )
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Análise não encontrada")
+    return analysis
+
+
+def delete(user_id: str, analysis_id: str, db: Session) -> None:
+    analysis = (
+        db.query(Analysis)
+        .filter(Analysis.id == analysis_id, Analysis.user_id == user_id)
+        .first()
+    )
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Análise não encontrada")
+    db.delete(analysis)
+    db.commit()

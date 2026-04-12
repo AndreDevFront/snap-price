@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { historyApi, AnalysisItem } from '../../src/services/api';
 import { useAuthStore } from '../../src/store/useAuthStore';
 
@@ -26,10 +27,14 @@ export default function HistoryScreen() {
   });
 
   const confirmDelete = useCallback((id: string, name: string) => {
-    Alert.alert('Remover', `Remover "${name}" do histórico?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Remover', style: 'destructive', onPress: () => deleteMutation.mutate(id) },
-    ]);
+    Alert.alert(
+      'Remover item',
+      `Deseja remover "${name}" do histórico?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: () => deleteMutation.mutate(id) },
+      ],
+    );
   }, [deleteMutation]);
 
   if (!isAuthenticated) {
@@ -50,7 +55,6 @@ export default function HistoryScreen() {
   const items = data?.items ?? [];
   const stats = data?.stats;
 
-  // confidence vem como 0-100 direto da API (ex: 85.0 = 85%)
   const fmtConfidence = (v: number) => `${Math.round(v)}%`;
   const fmtPrice = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -87,18 +91,33 @@ export default function HistoryScreen() {
           <TouchableOpacity
             style={styles.card}
             onPress={() => router.push({ pathname: '/result', params: { id: item.id } })}
-            onLongPress={() => confirmDelete(item.id, item.item_name)}
+            activeOpacity={0.8}
           >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardName} numberOfLines={1}>{item.item_name}</Text>
-              <Text style={styles.cardConfidence}>{fmtConfidence(item.confidence)}</Text>
+            <View style={styles.cardContent}>
+              <View style={styles.cardInfo}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardName} numberOfLines={1}>{item.item_name}</Text>
+                  <Text style={styles.cardConfidence}>{fmtConfidence(item.confidence)}</Text>
+                </View>
+                <Text style={styles.cardPrice}>
+                  R$ {fmtPrice(item.estimated_min)} – R$ {fmtPrice(item.estimated_max)}
+                </Text>
+                <Text style={styles.cardDate}>
+                  {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => confirmDelete(item.id, item.item_name)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {deleteMutation.isPending && deleteMutation.variables === item.id
+                  ? <ActivityIndicator size="small" color="#EF4444" />
+                  : <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                }
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardPrice}>
-              R$ {fmtPrice(item.estimated_min)} – R$ {fmtPrice(item.estimated_max)}
-            </Text>
-            <Text style={styles.cardDate}>
-              {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </Text>
           </TouchableOpacity>
         )}
       />
@@ -114,11 +133,14 @@ const styles = StyleSheet.create({
   statValue: { color: '#F59E0B', fontSize: 18, fontWeight: '700' },
   statLabel: { color: '#6B7280', fontSize: 11, marginTop: 2, textAlign: 'center' },
   card: { backgroundColor: '#1C1C1C', marginHorizontal: 16, marginBottom: 10, borderRadius: 14, padding: 16 },
+  cardContent: { flexDirection: 'row', alignItems: 'center' },
+  cardInfo: { flex: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   cardName: { color: '#F9FAFB', fontSize: 15, fontWeight: '600', flex: 1 },
   cardConfidence: { color: '#10B981', fontSize: 13, fontWeight: '600', marginLeft: 8 },
   cardPrice: { color: '#F59E0B', fontSize: 14, fontWeight: '500', marginBottom: 4 },
   cardDate: { color: '#6B7280', fontSize: 12 },
+  deleteBtn: { padding: 8, marginLeft: 8 },
   emptyTitle: { color: '#F9FAFB', fontSize: 18, fontWeight: '600' },
   emptySubtitle: { color: '#6B7280', fontSize: 14 },
   btn: { backgroundColor: '#F59E0B', paddingHorizontal: 32, paddingVertical: 14, borderRadius: 12 },

@@ -1,16 +1,11 @@
 import Constants from 'expo-constants';
 
-// Detecta automaticamente o IP do servidor de desenvolvimento
-// Para builds de produção, usa EXPO_PUBLIC_API_URL do .env
 function resolveBaseUrl(): string {
-  // 1. Variável de ambiente explicitamente definida (produção ou override manual)
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl && envUrl !== 'http://localhost:3000') {
     return envUrl.startsWith('http') ? envUrl : `http://${envUrl}`;
   }
 
-  // 2. Em desenvolvimento: pega o IP do servidor Expo e troca a porta para 3000
-  // Funciona automaticamente no emulador E no celular físico sem mudar o .env
   try {
     const debuggerHost =
       Constants.expoConfig?.hostUri ||
@@ -23,13 +18,12 @@ function resolveBaseUrl(): string {
     }
   } catch (_) {}
 
-  // 3. Fallback para emulador Android
   return 'http://10.0.2.2:3000';
 }
 
 const BASE_URL = resolveBaseUrl();
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T = void>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -44,6 +38,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         : err.message ?? 'Erro desconhecido';
     throw new Error(message);
   }
+  // 204 No Content — sem body para parsear
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -59,7 +55,6 @@ export async function analyzeImage(photoUri: string, token?: string) {
   return res.json();
 }
 
-// Tipo espelhando exatamente o UserResponse do backend
 export interface UserProfile {
   id: string;
   email: string;
@@ -117,7 +112,7 @@ export const historyApi = {
       headers: { Authorization: `Bearer ${token}` },
     }),
   remove: (token: string, id: string) =>
-    request(`/api/v1/history/${id}`, {
+    request<void>(`/api/v1/history/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     }),

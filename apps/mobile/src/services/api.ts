@@ -1,11 +1,33 @@
-// Garante que a URL sempre tem protocolo http://
-function buildBaseUrl(url: string): string {
-  if (!url) return 'http://localhost:3000';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `http://${url}`;
+import Constants from 'expo-constants';
+
+// Detecta automaticamente o IP do servidor de desenvolvimento
+// Para builds de produção, usa EXPO_PUBLIC_API_URL do .env
+function resolveBaseUrl(): string {
+  // 1. Variável de ambiente explicitamente definida (produção ou override manual)
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && envUrl !== 'http://localhost:3000') {
+    return envUrl.startsWith('http') ? envUrl : `http://${envUrl}`;
+  }
+
+  // 2. Em desenvolvimento: pega o IP do servidor Expo e troca a porta para 3000
+  // Funciona automaticamente no emulador E no celular físico sem mudar o .env
+  try {
+    const debuggerHost =
+      Constants.expoConfig?.hostUri ||
+      (Constants.manifest2 as any)?.extra?.expoGo?.debuggerHost ||
+      (Constants as any)?.manifest?.debuggerHost;
+
+    if (debuggerHost) {
+      const ip = debuggerHost.split(':')[0];
+      return `http://${ip}:3000`;
+    }
+  } catch (_) {}
+
+  // 3. Fallback para emulador Android
+  return 'http://10.0.2.2:3000';
 }
 
-const BASE_URL = buildBaseUrl(process.env.EXPO_PUBLIC_API_URL ?? '');
+const BASE_URL = resolveBaseUrl();
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {

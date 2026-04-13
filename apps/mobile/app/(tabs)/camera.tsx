@@ -11,7 +11,6 @@ import {
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { tokens } from 'ui';
 import { useAnalyze } from '../../src/hooks/useAnalyze';
 
@@ -77,12 +76,6 @@ export default function CameraScreen() {
       )}
 
       <SafeAreaView style={styles.topBar} edges={['top']}>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => router.replace('/(tabs)/index')}
-        >
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
         <Text style={styles.topTitle}>Avaliar item</Text>
         <TouchableOpacity
           style={[styles.iconBtn, flash === 'on' && { backgroundColor: tokens.colors.primary }]}

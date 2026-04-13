@@ -27,6 +27,17 @@ function buildSearchUrl(platformName: string, productName: string): string {
   }
 }
 
+/** Remove plataformas duplicadas (mesmo nome), mantendo a primeira ocorrência */
+function deduplicatePlatforms(platforms: any[]): any[] {
+  const seen = new Set<string>();
+  return platforms.filter((p) => {
+    const key = (p.name ?? '').toLowerCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function toResultShape(item: AnalysisItem) {
   return {
     name: item.item_name,
@@ -49,7 +60,6 @@ export default function ResultScreen() {
   const [historyData, setHistoryData] = useState<ReturnType<typeof toResultShape> | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Se veio com id (do histórico), busca na API
   useEffect(() => {
     if (!id || !token) return;
     setLoading(true);
@@ -67,7 +77,6 @@ export default function ResultScreen() {
     : data.confidence >= 75 ? tokens.colors.warning
     : tokens.colors.error;
 
-  // Fechar: volta para câmera (replace foi usado na navegação, não há histórico)
   function handleClose() {
     clearCurrent();
     router.replace('/(tabs)/camera');
@@ -78,18 +87,21 @@ export default function ResultScreen() {
     router.replace('/(tabs)/camera');
   }
 
-  async function handleOpenPlatform(platformName: string) {
+  async function handleOpenPlatform(platform: any) {
     if (!data) return;
-    const url = buildSearchUrl(platformName, data.name);
+    // Usa a URL real retornada pela API; fallback para URL de busca genérica
+    const url = (platform.url && platform.url.startsWith('http'))
+      ? platform.url
+      : buildSearchUrl(platform.name, data.name);
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Erro', `Não foi possível abrir ${platformName}`);
+        Alert.alert('Erro', `Não foi possível abrir ${platform.name}`);
       }
     } catch {
-      Alert.alert('Erro', `Não foi possível abrir ${platformName}`);
+      Alert.alert('Erro', `Não foi possível abrir ${platform.name}`);
     }
   }
 
@@ -115,6 +127,8 @@ export default function ResultScreen() {
   }
 
   const photoUri = historyData?.imageUrl ?? currentPhoto;
+  // Deduplica plataformas antes de renderizar
+  const platforms = deduplicatePlatforms(data.platforms);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -166,19 +180,19 @@ export default function ResultScreen() {
           </View>
         </View>
 
-        {data.platforms.length > 0 && (
+        {platforms.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Preços por plataforma</Text>
             <View style={styles.platformGrid}>
-              {data.platforms.map((p: any) => (
+              {platforms.map((p: any, index: number) => (
                 <TouchableOpacity
-                  key={p.name}
+                  key={`${p.name}-${index}`}
                   style={styles.platformCard}
                   activeOpacity={0.7}
-                  onPress={() => handleOpenPlatform(p.name)}
+                  onPress={() => handleOpenPlatform(p)}
                 >
                   <Text style={styles.platformName}>{p.name}</Text>
-                  <Text style={styles.platformPrice}>R$ {p.price.toLocaleString('pt-BR')}</Text>
+                  <Text style={styles.platformPrice}>R$ {Number(p.price).toLocaleString('pt-BR')}</Text>
                   <Ionicons name="open-outline" size={12} color={tokens.colors.primary} />
                 </TouchableOpacity>
               ))}

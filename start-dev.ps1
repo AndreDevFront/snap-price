@@ -1,23 +1,24 @@
 # ============================================================
 # start-dev.ps1
 # Automatiza a configuracao do ambiente de desenvolvimento:
-#   1. Descobre o IP do WSL2
-#   2. Descobre o IP Wi-Fi do Windows (usado pelo celular)
-#   3. Configura port proxy WSL2 -> Windows nas portas da API
-#   4. Libera as portas no Firewall do Windows
-#   5. Grava o IP no .env do mobile (EXPO_PUBLIC_API_URL)
-#   6. Sobe o Docker Compose no WSL2
-#   7. Aguarda a API responder (health check)
-#   8. Inicia o Expo com --dev-client
+#   1. Inicializa o WSL2 (caso ainda nao esteja rodando)
+#   2. Descobre o IP do WSL2
+#   3. Descobre o IP Wi-Fi do Windows (usado pelo celular)
+#   4. Configura port proxy WSL2 -> Windows nas portas da API
+#   5. Libera as portas no Firewall do Windows
+#   6. Grava o IP no .env do mobile (EXPO_PUBLIC_API_URL)
+#   7. Sobe o Docker Compose no WSL2
+#   8. Aguarda a API responder (health check)
+#   9. Inicia o Expo com --dev-client
 #
 # EXECUCAO: abra o PowerShell como Administrador e rode:
 #   .\start-dev.ps1
 # ============================================================
 
 param(
-  [int[]]$Ports = @(3000),
+  [int[]]$Ports       = @(3000),
   [string]$WslProjectPath = "/home/andre/snap-price",
-  [string]$WifiInterface = "Wi-Fi"
+  [string]$WifiInterface  = "Wi-Fi"
 )
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -28,7 +29,7 @@ function Write-Warn($msg) { Write-Host "  WARN $msg" -ForegroundColor Yellow }
 function Write-Fail($msg) { Write-Host "  FAIL $msg" -ForegroundColor Red }
 
 # ------------------------------------------------------------
-# 1. Verifica se esta rodando como Admin
+# 1. Verifica Admin
 # ------------------------------------------------------------
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
   [Security.Principal.WindowsBuiltInRole]::Administrator
@@ -39,27 +40,35 @@ if (-not $isAdmin) {
 }
 
 # ------------------------------------------------------------
-# 2. IP do WSL2 - tenta 3 metodos diferentes
+# 2. Inicializa o WSL2 (boot rapido com echo)
+# ------------------------------------------------------------
+Write-Step "Inicializando WSL2..."
+wsl echo "WSL2 pronto" | Out-Null
+Start-Sleep -Seconds 1
+
+# ------------------------------------------------------------
+# 3. IP do WSL2 - tenta 3 metodos em cascata
 # ------------------------------------------------------------
 Write-Step "Obtendo IP do WSL2..."
-
 $wslIp = $null
 
-# Metodo 1: hostname -I
+# Metodo 1: hostname -I (mais confiavel quando WSL ja esta rodando)
 try {
   $raw = wsl hostname -I 2>$null
-  if ($raw) { $wslIp = $raw.Trim().Split(" ") | Where-Object { $_ -match "^\d+\.\d+\.\d+\.\d+$" } | Select-Object -First 1 }
+  if ($raw) {
+    $wslIp = $raw.Trim().Split(" ") | Where-Object { $_ -match "^\d+\.\d+\.\d+\.\d+$" } | Select-Object -First 1
+  }
 } catch {}
 
-# Metodo 2: ip addr eth0
+# Metodo 2: ip addr via sh (evita dependencia de bash)
 if (-not $wslIp) {
   try {
-    $raw = wsl bash -c "ip addr show eth0 | grep 'inet ' | awk '{print \$2}' | cut -d'/' -f1" 2>$null
+    $raw = wsl -e sh -c "ip addr show eth0 | grep 'inet ' | awk '{print \$2}' | cut -d'/' -f1" 2>$null
     if ($raw) { $wslIp = $raw.Trim() }
   } catch {}
 }
 
-# Metodo 3: vEthernet (WSL) do Windows
+# Metodo 3: estima pelo gateway vEthernet (WSL)
 if (-not $wslIp) {
   try {
     $vEth = Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "vEthernet (WSL)" -ErrorAction Stop
@@ -71,14 +80,13 @@ if (-not $wslIp) {
 }
 
 if (-not $wslIp) {
-  Write-Fail "Nao foi possivel obter o IP do WSL2."
-  Write-Fail "Verifique se o WSL2 esta rodando: abra o terminal WSL e tente novamente."
+  Write-Fail "Nao foi possivel obter o IP do WSL2. Abra o terminal WSL e tente novamente."
   exit 1
 }
 Write-Ok "WSL2 IP: $wslIp"
 
 # ------------------------------------------------------------
-# 3. IP Wi-Fi do Windows
+# 4. IP Wi-Fi do Windows (visivel ao celular na rede local)
 # ------------------------------------------------------------
 Write-Step "Obtendo IP Windows na rede local..."
 $winIp = $null
@@ -101,7 +109,7 @@ try {
 }
 
 # ------------------------------------------------------------
-# 4. Port proxy e Firewall
+# 5. Port proxy + Firewall
 # ------------------------------------------------------------
 Write-Step "Configurando port proxy e firewall para portas: $($Ports -join ', ')..."
 foreach ($port in $Ports) {
@@ -119,7 +127,7 @@ foreach ($port in $Ports) {
 }
 
 # ------------------------------------------------------------
-# 5. Grava apps/mobile/.env
+# 6. Grava apps/mobile/.env
 # ------------------------------------------------------------
 Write-Step "Atualizando apps/mobile/.env com EXPO_PUBLIC_API_URL..."
 $envPath    = Join-Path $PSScriptRoot "apps\mobile\.env"
@@ -129,15 +137,15 @@ Set-Content -Path $envPath -Value $envContent -Encoding UTF8
 Write-Ok "EXPO_PUBLIC_API_URL=$apiUrl -> $envPath"
 
 # ------------------------------------------------------------
-# 6. Sobe Docker Compose no WSL2
+# 7. Sobe Docker Compose no WSL2 (usa sh, nao bash)
 # ------------------------------------------------------------
 Write-Step "Subindo Docker Compose em ${WslProjectPath}/apps/api ..."
-$out = wsl bash -c "cd '$WslProjectPath/apps/api' && docker compose up -d 2>&1"
+$out = wsl -e sh -c "cd '$WslProjectPath/apps/api' && docker compose up -d 2>&1"
 Write-Host ($out | Out-String).Trim()
 Write-Ok "Docker Compose iniciado"
 
 # ------------------------------------------------------------
-# 7. Health check
+# 8. Health check
 # ------------------------------------------------------------
 Write-Step "Aguardando API em ${apiUrl}/health ..."
 $maxTries = 20
@@ -154,14 +162,14 @@ while ($attempt -lt $maxTries -and -not $ready) {
 }
 
 if (-not $ready) {
-  Write-Warn "API nao respondeu. Veja os logs com:"
-  Write-Warn "  wsl bash -c 'cd $WslProjectPath/apps/api && docker compose logs -f'"
+  Write-Warn "API nao respondeu. Verifique os logs com:"
+  Write-Warn "  wsl -e sh -c 'cd $WslProjectPath/apps/api && docker compose logs'"
 } else {
   Write-Ok "API respondendo em $apiUrl"
 }
 
 # ------------------------------------------------------------
-# 8. Expo
+# 9. Expo
 # ------------------------------------------------------------
 Write-Step "Iniciando Expo..."
 Write-Host "`n  >>> IP para usar no celular: $apiUrl <<<" -ForegroundColor Yellow

@@ -21,7 +21,8 @@ export function useAnalyze() {
     },
     onSuccess: (data, photoUri) => {
       setResult(data, photoUri);
-      router.push('/result');
+      // setTimeout garante que o Zustand propagou o estado antes da navegação
+      setTimeout(() => router.replace('/result'), 0);
     },
     onError: (error: Error) => {
       setError(error.message);

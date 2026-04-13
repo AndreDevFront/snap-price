@@ -16,7 +16,7 @@
 # ============================================================
 
 param(
-  [int[]]$Ports            = @(3000),
+  [int[]]$Ports            = @(3000, 8081),
   [string]$WslProjectPath  = "/home/andre/snap-price",
   [string]$WifiInterface   = "Wi-Fi",
   [string]$WslDistro       = "Ubuntu-24.04"
@@ -116,21 +116,21 @@ try {
 }
 
 # ------------------------------------------------------------
-# 5. Port proxy + Firewall
+# 5. Port proxy + Firewall (3000 = API, 8081 = Metro bundler)
 # ------------------------------------------------------------
 Write-Step "Configurando port proxy e firewall para portas: $($Ports -join ', ')..."
 foreach ($port in $Ports) {
   netsh interface portproxy delete v4tov4 listenport=$port listenaddress=0.0.0.0 | Out-Null
   netsh interface portproxy add v4tov4 `
     listenport=$port listenaddress=0.0.0.0 `
-    connectport=$port connectaddress=$wslIp | Out-Null
+    connectport=$port connectaddress=$winIp | Out-Null
 
   $ruleName = "WSL2-SnapPrice-$port"
   netsh advfirewall firewall delete rule name=$ruleName | Out-Null
   netsh advfirewall firewall add rule `
     name=$ruleName dir=in action=allow protocol=TCP localport=$port | Out-Null
 
-  Write-Ok "Porta ${port}: ${wslIp} -> 0.0.0.0 (portproxy + firewall OK)"
+  Write-Ok "Porta ${port}: $winIp -> 0.0.0.0 (portproxy + firewall OK)"
 }
 
 # ------------------------------------------------------------
@@ -179,6 +179,8 @@ if (-not $ready) {
 # 9. Expo
 # ------------------------------------------------------------
 Write-Step "Iniciando Expo..."
-Write-Host "`n  >>> IP para usar no celular: $apiUrl <<<" -ForegroundColor Yellow
+Write-Host "`n  >>> IP para usar no celular: $winIp <<<" -ForegroundColor Yellow
+Write-Host   "  >>> API:    http://${winIp}:3000 <<<" -ForegroundColor Yellow
+Write-Host   "  >>> Metro:  http://${winIp}:8081 <<<" -ForegroundColor Yellow
 Set-Location (Join-Path $PSScriptRoot "apps\mobile")
 npx expo start --dev-client

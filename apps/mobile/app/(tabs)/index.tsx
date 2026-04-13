@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { tokens } from 'ui';
 import { useAuthStore } from '../../src/store/useAuthStore';
+import { useAnalyzeStore } from '../../src/store/useAnalyzeStore';
 import { useQuery } from '@tanstack/react-query';
 import { historyApi, AnalysisItem } from '../../src/services/api';
 
@@ -56,6 +57,7 @@ function HistoryCard({ item }: { item: AnalysisItem }) {
 
 export default function HomeScreen() {
   const { user, token } = useAuthStore();
+  const clearCurrent = useAnalyzeStore((state) => state.clearCurrent);
   const firstName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'Usuário';
 
   const { data } = useQuery({
@@ -84,7 +86,10 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.ctaBanner}
         activeOpacity={0.85}
-        onPress={() => router.push('/(tabs)/camera')}
+        onPress={() => {
+          clearCurrent(); // limpa resultado anterior antes de abrir a câmera
+          router.push('/(tabs)/camera');
+        }}
       >
         <View style={styles.ctaLeft}>
           <Text style={styles.ctaTag}>IA + Câmera</Text>

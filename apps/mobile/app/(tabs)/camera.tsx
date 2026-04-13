@@ -8,9 +8,11 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { tokens } from 'ui';
 import { useAnalyze } from '../../src/hooks/useAnalyze';
 
@@ -19,7 +21,7 @@ const { width: SCREEN_W } = Dimensions.get('window');
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
-  const [flash, setFlash] = useState(false);
+  const [flash, setFlash] = useState<FlashMode>('off');
   const cameraRef = useRef<CameraView>(null);
   const { analyze, isLoading } = useAnalyze();
 
@@ -52,13 +54,36 @@ export default function CameraScreen() {
     }
   }
 
+  async function handleGallery() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permissão necessária',
+        'Precisamos de acesso à sua galeria para selecionar uma foto.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      analyze(result.assets[0].uri);
+    }
+  }
+
+  function toggleFlash() {
+    setFlash((prev) => (prev === 'off' ? 'on' : 'off'));
+  }
+
   return (
     <View style={styles.container}>
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
         facing={facing}
-        flash={flash ? 'on' : 'off'}
+        flash={flash}
       />
 
       {/* Loading overlay */}
@@ -74,15 +99,15 @@ export default function CameraScreen() {
 
       {/* Top bar */}
       <SafeAreaView style={styles.topBar} edges={['top']}>
-        <TouchableOpacity style={styles.iconBtn}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.replace('/(tabs)')}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>Avaliar item</Text>
         <TouchableOpacity
-          style={[styles.iconBtn, flash && { backgroundColor: tokens.colors.primary }]}
-          onPress={() => setFlash((f) => !f)}
+          style={[styles.iconBtn, flash === 'on' && { backgroundColor: tokens.colors.primary }]}
+          onPress={toggleFlash}
         >
-          <Ionicons name={flash ? 'flash' : 'flash-off'} size={22} color="#fff" />
+          <Ionicons name={flash === 'on' ? 'flash' : 'flash-off'} size={22} color="#fff" />
         </TouchableOpacity>
       </SafeAreaView>
 
@@ -100,7 +125,7 @@ export default function CameraScreen() {
 
       {/* Bottom controls */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.sideBtn}>
+        <TouchableOpacity style={styles.sideBtn} onPress={handleGallery} disabled={isLoading}>
           <Ionicons name="images-outline" size={26} color="#fff" />
           <Text style={styles.sideBtnLabel}>Galeria</Text>
         </TouchableOpacity>
@@ -117,6 +142,7 @@ export default function CameraScreen() {
         <TouchableOpacity
           style={styles.sideBtn}
           onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+          disabled={isLoading}
         >
           <Ionicons name="camera-reverse-outline" size={26} color="#fff" />
           <Text style={styles.sideBtnLabel}>Virar</Text>

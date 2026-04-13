@@ -67,9 +67,15 @@ export default function ResultScreen() {
     : data.confidence >= 75 ? tokens.colors.warning
     : tokens.colors.error;
 
+  // Fechar: volta para câmera (replace foi usado na navegação, não há histórico)
+  function handleClose() {
+    clearCurrent();
+    router.replace('/(tabs)/camera');
+  }
+
   function handleNewAnalysis() {
     clearCurrent();
-    router.push('/(tabs)/camera');
+    router.replace('/(tabs)/camera');
   }
 
   async function handleOpenPlatform(platformName: string) {
@@ -100,7 +106,7 @@ export default function ResultScreen() {
       <SafeAreaView style={[styles.container, styles.center]}>
         <Ionicons name="alert-circle-outline" size={48} color={tokens.colors.textMuted} />
         <Text style={styles.emptyText}>Nenhum dado encontrado</Text>
-        <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/(tabs)/camera')}>
+        <TouchableOpacity style={styles.ctaBtn} onPress={() => router.replace('/(tabs)/camera')}>
           <Ionicons name="camera" size={18} color={tokens.colors.textInverse} />
           <Text style={styles.ctaBtnText}>Avaliar um item</Text>
         </TouchableOpacity>
@@ -113,7 +119,7 @@ export default function ResultScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={handleClose}>
           <Ionicons name="close" size={22} color={tokens.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Resultado</Text>

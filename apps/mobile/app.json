@@ -17,8 +17,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.andredevfront.snapprice",
       "infoPlist": {
-        "NSCameraUsageDescription": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado.",
-        "NSPhotoLibraryUsageDescription": "Acesse sua galeria para avaliar fotos de itens já tiradas."
+        "NSCameraUsageDescription": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado."
       }
     },
     "android": {
@@ -28,9 +27,7 @@
         "backgroundColor": "#0F0F0F"
       },
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.CAMERA"
       ]
     },
     "plugins": [
@@ -39,12 +36,6 @@
         "expo-camera",
         {
           "cameraPermission": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Acesse sua galeria para avaliar fotos de itens já tiradas."
         }
       ],
       "expo-asset",

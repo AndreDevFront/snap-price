@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -54,41 +53,6 @@ export default function CameraScreen() {
     }
   }
 
-  async function handleGallery() {
-    if (isLoading) return;
-
-    // Solicita permissão da galeria
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status === 'denied') {
-      Alert.alert(
-        'Permissão negada',
-        'Para usar a galeria, acesse Configurações do celular > Apps > SnapPrice > Permissões e ative o acesso a Fotos.',
-        [{ text: 'OK' }],
-      );
-      return;
-    }
-
-    if (status !== 'granted') {
-      Alert.alert(
-        'Permissão necessária',
-        'Precisamos de acesso à sua galeria para selecionar uma foto.',
-        [{ text: 'Cancelar', style: 'cancel' }],
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-      allowsEditing: false,
-    });
-
-    if (!result.canceled && result.assets[0]?.uri) {
-      analyze(result.assets[0].uri);
-    }
-  }
-
   function toggleFlash() {
     setFlash((prev) => (prev === 'off' ? 'on' : 'off'));
   }
@@ -102,7 +66,6 @@ export default function CameraScreen() {
         flash={flash}
       />
 
-      {/* Loading overlay */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
@@ -113,7 +76,6 @@ export default function CameraScreen() {
         </View>
       )}
 
-      {/* Top bar */}
       <SafeAreaView style={styles.topBar} edges={['top']}>
         <TouchableOpacity
           style={styles.iconBtn}
@@ -130,7 +92,6 @@ export default function CameraScreen() {
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* Viewfinder */}
       <View style={styles.viewfinder}>
         <View style={[styles.corner, styles.topLeft]} />
         <View style={[styles.corner, styles.topRight]} />
@@ -142,12 +103,8 @@ export default function CameraScreen() {
         <Text style={styles.hintText}>Centralize o item dentro da área</Text>
       </View>
 
-      {/* Bottom controls */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.sideBtn} onPress={handleGallery} disabled={isLoading}>
-          <Ionicons name="images-outline" size={26} color="#fff" />
-          <Text style={styles.sideBtnLabel}>Galeria</Text>
-        </TouchableOpacity>
+        <View style={styles.sideBtn} />
 
         <TouchableOpacity
           style={[styles.shutterBtn, isLoading && { opacity: 0.5 }]}

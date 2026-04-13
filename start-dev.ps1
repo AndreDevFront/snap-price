@@ -1,7 +1,7 @@
 # ============================================================
 # start-dev.ps1
 # Automatiza a configuracao do ambiente de desenvolvimento:
-#   1. Inicializa o WSL2 (caso ainda nao esteja rodando)
+#   1. Inicializa o WSL2 (Ubuntu-24.04)
 #   2. Descobre o IP do WSL2
 #   3. Descobre o IP Wi-Fi do Windows (usado pelo celular)
 #   4. Configura port proxy WSL2 -> Windows nas portas da API
@@ -16,9 +16,10 @@
 # ============================================================
 
 param(
-  [int[]]$Ports       = @(3000),
-  [string]$WslProjectPath = "/home/andre/snap-price",
-  [string]$WifiInterface  = "Wi-Fi"
+  [int[]]$Ports            = @(3000),
+  [string]$WslProjectPath  = "/home/andre/snap-price",
+  [string]$WifiInterface   = "Wi-Fi",
+  [string]$WslDistro       = "Ubuntu-24.04"
 )
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -27,6 +28,11 @@ function Write-Step($msg) { Write-Host "`n$msg" -ForegroundColor Cyan }
 function Write-Ok($msg)   { Write-Host "  OK  $msg" -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host "  WARN $msg" -ForegroundColor Yellow }
 function Write-Fail($msg) { Write-Host "  FAIL $msg" -ForegroundColor Red }
+
+# Roda comando no WSL sempre na distro correta
+function Invoke-Wsl([string]$cmd) {
+  wsl -d $WslDistro -e sh -c $cmd 2>&1
+}
 
 # ------------------------------------------------------------
 # 1. Verifica Admin
@@ -40,30 +46,31 @@ if (-not $isAdmin) {
 }
 
 # ------------------------------------------------------------
-# 2. Inicializa o WSL2 (boot rapido com echo)
+# 2. Inicializa o WSL2 (boot rapido)
 # ------------------------------------------------------------
-Write-Step "Inicializando WSL2..."
-wsl echo "WSL2 pronto" | Out-Null
+Write-Step "Inicializando WSL2 ($WslDistro)..."
+wsl -d $WslDistro echo "ok" | Out-Null
 Start-Sleep -Seconds 1
+Write-Ok "WSL2 ($WslDistro) inicializado"
 
 # ------------------------------------------------------------
-# 3. IP do WSL2 - tenta 3 metodos em cascata
+# 3. IP do WSL2
 # ------------------------------------------------------------
 Write-Step "Obtendo IP do WSL2..."
 $wslIp = $null
 
-# Metodo 1: hostname -I (mais confiavel quando WSL ja esta rodando)
+# Metodo 1: hostname -I na distro correta
 try {
-  $raw = wsl hostname -I 2>$null
+  $raw = wsl -d $WslDistro hostname -I 2>$null
   if ($raw) {
     $wslIp = $raw.Trim().Split(" ") | Where-Object { $_ -match "^\d+\.\d+\.\d+\.\d+$" } | Select-Object -First 1
   }
 } catch {}
 
-# Metodo 2: ip addr via sh (evita dependencia de bash)
+# Metodo 2: ip addr via sh na distro correta
 if (-not $wslIp) {
   try {
-    $raw = wsl -e sh -c "ip addr show eth0 | grep 'inet ' | awk '{print \$2}' | cut -d'/' -f1" 2>$null
+    $raw = Invoke-Wsl "ip addr show eth0 | grep 'inet ' | awk '{print \$2}' | cut -d'/' -f1"
     if ($raw) { $wslIp = $raw.Trim() }
   } catch {}
 }
@@ -80,7 +87,7 @@ if (-not $wslIp) {
 }
 
 if (-not $wslIp) {
-  Write-Fail "Nao foi possivel obter o IP do WSL2. Abra o terminal WSL e tente novamente."
+  Write-Fail "Nao foi possivel obter o IP do WSL2. Verifique se a distro '$WslDistro' esta rodando."
   exit 1
 }
 Write-Ok "WSL2 IP: $wslIp"
@@ -137,10 +144,10 @@ Set-Content -Path $envPath -Value $envContent -Encoding UTF8
 Write-Ok "EXPO_PUBLIC_API_URL=$apiUrl -> $envPath"
 
 # ------------------------------------------------------------
-# 7. Sobe Docker Compose no WSL2 (usa sh, nao bash)
+# 7. Sobe Docker Compose no WSL2
 # ------------------------------------------------------------
 Write-Step "Subindo Docker Compose em ${WslProjectPath}/apps/api ..."
-$out = wsl -e sh -c "cd '$WslProjectPath/apps/api' && docker compose up -d 2>&1"
+$out = Invoke-Wsl "cd '$WslProjectPath/apps/api' && docker compose up -d"
 Write-Host ($out | Out-String).Trim()
 Write-Ok "Docker Compose iniciado"
 
@@ -163,7 +170,7 @@ while ($attempt -lt $maxTries -and -not $ready) {
 
 if (-not $ready) {
   Write-Warn "API nao respondeu. Verifique os logs com:"
-  Write-Warn "  wsl -e sh -c 'cd $WslProjectPath/apps/api && docker compose logs'"
+  Write-Warn "  wsl -d $WslDistro -e sh -c 'cd $WslProjectPath/apps/api && docker compose logs'"
 } else {
   Write-Ok "API respondendo em $apiUrl"
 }

@@ -29,7 +29,8 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
       ]
     },
     "plugins": [
@@ -38,6 +39,12 @@
         "expo-camera",
         {
           "cameraPermission": "O SnapPrice usa a câmera para fotografar itens e estimar seus preços de mercado."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Acesse sua galeria para avaliar fotos de itens já tiradas."
         }
       ],
       "expo-asset",

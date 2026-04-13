@@ -3,6 +3,7 @@ import { analyzeImage } from '../services/api';
 import { useAnalyzeStore } from '../store/useAnalyzeStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { router } from 'expo-router';
+import Toast from 'react-native-toast-message';
 
 /**
  * Hook que orquestra:
@@ -21,11 +22,23 @@ export function useAnalyze() {
     },
     onSuccess: (data, photoUri) => {
       setResult(data, photoUri);
+      Toast.show({
+        type: 'success',
+        text1: 'Item analisado com sucesso!',
+        text2: `${data.item_name} — R$ ${data.avg_price.toLocaleString('pt-BR')}`,
+        visibilityTime: 3000,
+      });
       // setTimeout garante que o Zustand propagou o estado antes da navegação
       setTimeout(() => router.replace('/result'), 0);
     },
     onError: (error: Error) => {
       setError(error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Não foi possível analisar',
+        text2: 'Tente novamente com melhor iluminação ou enquadramento',
+        visibilityTime: 4000,
+      });
     },
   });
 

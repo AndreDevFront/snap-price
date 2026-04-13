@@ -10,6 +10,10 @@ import Toast from 'react-native-toast-message';
  * 1. Chama a API /analyze com a foto
  * 2. Atualiza o Zustand store com o resultado
  * 3. Navega para a tela de resultado
+ *
+ * Campos da resposta da API (/analyze):
+ *   name, estimatedPrice, priceRange, confidence, platforms, tips
+ * (diferentes dos campos do histórico: item_name, avg_price, etc.)
  */
 export function useAnalyze() {
   const { setAnalyzing, setResult, setError } = useAnalyzeStore();
@@ -21,17 +25,22 @@ export function useAnalyze() {
       setAnalyzing(true);
     },
     onSuccess: (data, photoUri) => {
+      setAnalyzing(false);
       setResult(data, photoUri);
+
+      const price = data.estimatedPrice ?? data.priceRange?.min ?? 0;
       Toast.show({
         type: 'success',
         text1: 'Item analisado com sucesso!',
-        text2: `${data.item_name} — R$ ${data.avg_price.toLocaleString('pt-BR')}`,
+        text2: `${data.name} — R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
         visibilityTime: 3000,
       });
+
       // setTimeout garante que o Zustand propagou o estado antes da navegação
       setTimeout(() => router.replace('/result'), 0);
     },
     onError: (error: Error) => {
+      setAnalyzing(false);
       setError(error.message);
       Toast.show({
         type: 'error',

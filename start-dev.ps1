@@ -11,7 +11,7 @@
 #   8. Inicia o Expo com --dev-client
 #
 # EXECUCAO: abra o PowerShell como Administrador e rode:
-#   .\start-dev.ps1 -WslProjectPath "/home/andre/snap-price"
+#   .\start-dev.ps1
 # ============================================================
 
 param(
@@ -39,7 +39,7 @@ if (-not $isAdmin) {
 }
 
 # ------------------------------------------------------------
-# 2. IP do WSL2 — tenta 3 metodos diferentes
+# 2. IP do WSL2 - tenta 3 metodos diferentes
 # ------------------------------------------------------------
 Write-Step "Obtendo IP do WSL2..."
 
@@ -51,7 +51,7 @@ try {
   if ($raw) { $wslIp = $raw.Trim().Split(" ") | Where-Object { $_ -match "^\d+\.\d+\.\d+\.\d+$" } | Select-Object -First 1 }
 } catch {}
 
-# Metodo 2: ip route
+# Metodo 2: ip addr eth0
 if (-not $wslIp) {
   try {
     $raw = wsl bash -c "ip addr show eth0 | grep 'inet ' | awk '{print \$2}' | cut -d'/' -f1" 2>$null
@@ -59,11 +59,10 @@ if (-not $wslIp) {
   } catch {}
 }
 
-# Metodo 3: le do registro do Windows (vEthernet WSL)
+# Metodo 3: vEthernet (WSL) do Windows
 if (-not $wslIp) {
   try {
     $vEth = Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "vEthernet (WSL)" -ErrorAction Stop
-    # O IP do WSL2 fica na mesma subnet, ultimo octeto .1 -> host; .2 geralmente eh o WSL
     $parts = $vEth.IPAddress.Split(".")
     $parts[3] = "2"
     $wslIp = $parts -join "."
@@ -79,7 +78,7 @@ if (-not $wslIp) {
 Write-Ok "WSL2 IP: $wslIp"
 
 # ------------------------------------------------------------
-# 3. IP Wi-Fi do Windows (visivel na rede local / celular)
+# 3. IP Wi-Fi do Windows
 # ------------------------------------------------------------
 Write-Step "Obtendo IP Windows na rede local..."
 $winIp = $null
@@ -88,7 +87,6 @@ try {
   $winIp = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias $WifiInterface -ErrorAction Stop).IPAddress
   Write-Ok "Windows IP ($WifiInterface): $winIp"
 } catch {
-  # Fallback: qualquer interface ativa, exceto loopback e link-local
   $winIp = (Get-NetIPAddress -AddressFamily IPv4 |
     Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.*" -and $_.IPAddress -notlike "172.*" } |
     Select-Object -First 1).IPAddress
@@ -98,8 +96,8 @@ try {
     exit 1
   }
   Write-Warn "Interface '$WifiInterface' nao encontrada. Usando IP: $winIp"
-  Write-Warn "Para fixar a interface correta, rode: Get-NetIPAddress -AddressFamily IPv4"
-  Write-Warn "Depois passe o nome correto: .\start-dev.ps1 -WifiInterface 'NomeDaInterface'"
+  Write-Warn "Para fixar, rode: Get-NetIPAddress -AddressFamily IPv4"
+  Write-Warn "Depois passe: .\start-dev.ps1 -WifiInterface 'NomeDaInterface'"
 }
 
 # ------------------------------------------------------------
@@ -117,7 +115,7 @@ foreach ($port in $Ports) {
   netsh advfirewall firewall add rule `
     name=$ruleName dir=in action=allow protocol=TCP localport=$port | Out-Null
 
-  Write-Ok "Porta $port: $wslIp -> 0.0.0.0 (portproxy + firewall OK)"
+  Write-Ok "Porta ${port}: ${wslIp} -> 0.0.0.0 (portproxy + firewall OK)"
 }
 
 # ------------------------------------------------------------
@@ -133,7 +131,7 @@ Write-Ok "EXPO_PUBLIC_API_URL=$apiUrl -> $envPath"
 # ------------------------------------------------------------
 # 6. Sobe Docker Compose no WSL2
 # ------------------------------------------------------------
-Write-Step "Subindo Docker Compose em $WslProjectPath/apps/api ..."
+Write-Step "Subindo Docker Compose em ${WslProjectPath}/apps/api ..."
 $out = wsl bash -c "cd '$WslProjectPath/apps/api' && docker compose up -d 2>&1"
 Write-Host ($out | Out-String).Trim()
 Write-Ok "Docker Compose iniciado"
@@ -141,7 +139,7 @@ Write-Ok "Docker Compose iniciado"
 # ------------------------------------------------------------
 # 7. Health check
 # ------------------------------------------------------------
-Write-Step "Aguardando API em $apiUrl/health ..."
+Write-Step "Aguardando API em ${apiUrl}/health ..."
 $maxTries = 20
 $attempt  = 0
 $ready    = $false

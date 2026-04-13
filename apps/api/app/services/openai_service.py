@@ -7,35 +7,55 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.schemas.analyze import AnalyzeResponse
 
-IDENTIFY_PROMPT = "Identifique este produto em até 10 palavras: marca, modelo, versão. Responda apenas o nome do produto."
+# Prompt para identificar o produto pela imagem (gpt-4o com visão)
+IDENTIFY_PROMPT = (
+    "Identify this product in up to 10 words: brand, model, version. "
+    "Reply ONLY with the product name, nothing else."
+)
 
+# Prompt para buscar preços reais na internet (gpt-4o-search-preview, texto-only)
 SEARCH_PROMPT = """
-Você é um especialista em avaliação de preços no mercado brasileiro.
+You are a pricing expert for the Brazilian second-hand market.
 
-Pesquise NA INTERNET agora o preço atual do produto "{product_name}" nas principais plataformas brasileiras de compra e venda onde ele é comercializado.
+Search the internet RIGHT NOW for the current price of "{product_name}" on Brazilian buy/sell platforms.
 
-Regras:
-- Busque preços REAIS e ATUAIS das plataformas onde este produto é realmente vendido
-- Escolha as 4 plataformas mais relevantes para este tipo de produto (não use sempre as mesmas)
-- Use URLs reais das listagens encontradas
-- Os preços devem refletir o valor real praticado hoje
+Rules:
+- Find REAL and CURRENT prices from the platforms where this product is actually sold
+- Pick the 4 most relevant platforms for this specific product type (do NOT always use the same ones)
+- Use real listing URLs found during your search
+- Prices must reflect what is being charged TODAY
+- Respond ONLY with valid JSON, no extra text, no markdown
 
-Retorne APENAS JSON válido neste formato:
+Required JSON format (use EXACTLY these English field names):
 {{
-  "name": "nome completo do produto",
-  "category": "categoria",
+  "name": "full product name",
+  "category": "product category in Portuguese",
   "condition": "Novo | Seminovo | Bom estado | Usado | Desgastado",
-  "estimatedPrice": preço médio em reais,
-  "priceRange": {{ "min": valor_minimo, "max": valor_maximo }},
-  "confidence": 0 a 100,
+  "estimatedPrice": average price as number,
+  "priceRange": {{ "min": min_value, "max": max_value }},
+  "confidence": number 0 to 100,
   "platforms": [
-    {{ "name": "Nome da Plataforma", "price": valor_numerico, "url": "https://url-real-do-anuncio" }}
+    {{ "name": "Platform Name", "price": numeric_value, "url": "https://real-listing-url" }}
   ],
-  "tips": ["dica 1", "dica 2", "dica 3"]
+  "tips": ["tip 1 in Portuguese", "tip 2 in Portuguese", "tip 3 in Portuguese"]
 }}
-
-Responda apenas com o JSON, sem texto adicional.
 """.strip()
+
+# Prompt fallback caso o search falhe (gpt-4o com visão)
+FALLBACK_SYSTEM = (
+    "You are a pricing expert for the Brazilian market. "
+    "Always respond ONLY with valid JSON using EXACTLY these English field names: "
+    "name, category, condition, estimatedPrice, priceRange (with min and max), "
+    "confidence, platforms (array of objects with name, price, url), tips (array of strings). "
+    "Use Portuguese for category, condition, and tips values. No extra text."
+)
+
+
+def _clean_json(raw: str) -> str:
+    """Remove blocos markdown e espaços extras."""
+    clean = re.sub(r"^```(?:json)?\n?", "", raw, flags=re.IGNORECASE)
+    clean = re.sub(r"\n?```$", "", clean).strip()
+    return clean
 
 
 class OpenAIService:
@@ -46,7 +66,7 @@ class OpenAIService:
         b64 = base64.b64encode(image_bytes).decode("utf-8")
         data_url = f"data:{mime_type};base64,{b64}"
 
-        # Passo 1: identificar o produto pela imagem
+        # Passo 1: identificar o produto pela imagem (gpt-4o com visão)
         id_response = await self.client.chat.completions.create(
             model="gpt-4o",
             max_tokens=80,
@@ -61,54 +81,55 @@ class OpenAIService:
                 }
             ],
         )
-        product_name = (id_response.choices[0].message.content or "produto").strip()
+        product_name = (id_response.choices[0].message.content or "product").strip()
 
-        # Passo 2: buscar preços reais com gpt-4o-search-preview (acesso à internet)
-        search_response = await self.client.chat.completions.create(
-            model="gpt-4o-search-preview",
-            max_tokens=1024,
-            messages=[
-                {
-                    "role": "user",
-                    "content": SEARCH_PROMPT.format(product_name=product_name),
-                }
-            ],
-            web_search_options={},
-        )
-
-        raw = search_response.choices[0].message.content or "{}"
-        clean = re.sub(r"^```(?:json)?\n?", "", raw, flags=re.IGNORECASE)
-        clean = re.sub(r"\n?```$", "", clean).strip()
-
+        # Passo 2: buscar preços reais com gpt-4o-search-preview (texto-only, acessa internet)
         try:
-            return AnalyzeResponse(**json.loads(clean))
-        except Exception:
-            # Fallback: gpt-4o normal caso search retorne texto inválido
-            fallback = await self.client.chat.completions.create(
-                model="gpt-4o",
+            search_response = await self.client.chat.completions.create(
+                model="gpt-4o-search-preview",
                 max_tokens=1024,
-                temperature=0.2,
                 messages=[
                     {
-                        "role": "system",
-                        "content": "Você é um especialista em preços do mercado brasileiro. Retorne apenas JSON válido.",
-                    },
-                    {
                         "role": "user",
-                        "content": [
-                            {"type": "image_url", "image_url": {"url": data_url, "detail": "high"}},
-                            {
-                                "type": "text",
-                                "text": f"Produto: {product_name}. Retorne o JSON de avaliação com preços das plataformas mais relevantes para este produto no Brasil.",
-                            },
-                        ],
-                    },
+                        "content": SEARCH_PROMPT.format(product_name=product_name),
+                    }
                 ],
+                web_search_options={},
             )
-            raw2 = fallback.choices[0].message.content or "{}"
-            clean2 = re.sub(r"^```(?:json)?\n?", "", raw2, flags=re.IGNORECASE)
-            clean2 = re.sub(r"\n?```$", "", clean2).strip()
-            return AnalyzeResponse(**json.loads(clean2))
+            raw = search_response.choices[0].message.content or ""
+            clean = _clean_json(raw)
+            data = json.loads(clean)
+            return AnalyzeResponse(**data)
+        except Exception:
+            pass
+
+        # Passo 3 (fallback): gpt-4o com visão, prompt rígido em inglês
+        fallback_response = await self.client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=1024,
+            temperature=0.1,
+            messages=[
+                {"role": "system", "content": FALLBACK_SYSTEM},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": data_url, "detail": "high"}},
+                        {
+                            "type": "text",
+                            "text": (
+                                f'Product: "{product_name}". '
+                                "Return the JSON evaluation with prices from the 4 most relevant "
+                                "Brazilian platforms for this product type. "
+                                "IMPORTANT: use only these exact field names in English as shown."
+                            ),
+                        },
+                    ],
+                },
+            ],
+        )
+        raw2 = fallback_response.choices[0].message.content or "{}"
+        clean2 = _clean_json(raw2)
+        return AnalyzeResponse(**json.loads(clean2))
 
 
 openai_service = OpenAIService()

@@ -16,10 +16,11 @@
 # ============================================================
 
 param(
-  [int[]]$Ports            = @(3000, 8081),
+  [int[]]$Ports            = @(3000, 8082),
   [string]$WslProjectPath  = "/home/andre/snap-price",
   [string]$WifiInterface   = "Wi-Fi",
-  [string]$WslDistro       = "Ubuntu-24.04"
+  [string]$WslDistro       = "Ubuntu-24.04",
+  [int]$MetroPort          = 8082
 )
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -116,7 +117,7 @@ try {
 }
 
 # ------------------------------------------------------------
-# 5. Port proxy + Firewall (3000 = API, 8081 = Metro bundler)
+# 5. Port proxy + Firewall (3000 = API, 8082 = Metro bundler)
 # ------------------------------------------------------------
 Write-Step "Configurando port proxy e firewall para portas: $($Ports -join ', ')..."
 foreach ($port in $Ports) {
@@ -130,7 +131,7 @@ foreach ($port in $Ports) {
   netsh advfirewall firewall add rule `
     name=$ruleName dir=in action=allow protocol=TCP localport=$port | Out-Null
 
-  Write-Ok "Porta ${port}: $winIp -> 0.0.0.0 (portproxy + firewall OK)"
+  Write-Ok "Porta ${port}: aberta no firewall"
 }
 
 # ------------------------------------------------------------
@@ -176,11 +177,10 @@ if (-not $ready) {
 }
 
 # ------------------------------------------------------------
-# 9. Expo
+# 9. Expo (porta 8082 para evitar conflito com svchost na 8081)
 # ------------------------------------------------------------
 Write-Step "Iniciando Expo..."
-Write-Host "`n  >>> IP para usar no celular: $winIp <<<" -ForegroundColor Yellow
-Write-Host   "  >>> API:    http://${winIp}:3000 <<<" -ForegroundColor Yellow
-Write-Host   "  >>> Metro:  http://${winIp}:8081 <<<" -ForegroundColor Yellow
+Write-Host "`n  >>> API:    http://${winIp}:3000 <<<" -ForegroundColor Yellow
+Write-Host   "  >>> Metro:  http://${winIp}:${MetroPort} <<<" -ForegroundColor Yellow
 Set-Location (Join-Path $PSScriptRoot "apps\mobile")
-npx expo start --dev-client
+npx expo start --dev-client --port $MetroPort

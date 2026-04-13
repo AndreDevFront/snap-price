@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -55,21 +54,29 @@ export default function CameraScreen() {
   }
 
   async function handleGallery() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
+    try {
+      const ImagePicker = await import('expo-image-picker');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permissão necessária',
+          'Precisamos de acesso à sua galeria para selecionar uma foto.',
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: false,
+      });
+      if (!result.canceled && result.assets[0]?.uri) {
+        analyze(result.assets[0].uri);
+      }
+    } catch {
       Alert.alert(
-        'Permissão necessária',
-        'Precisamos de acesso à sua galeria para selecionar uma foto.',
+        'Galeria indisponível',
+        'Feche o app completamente, reabra e tente novamente.',
       );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-      allowsEditing: false,
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      analyze(result.assets[0].uri);
     }
   }
 
@@ -99,7 +106,10 @@ export default function CameraScreen() {
 
       {/* Top bar */}
       <SafeAreaView style={styles.topBar} edges={['top']}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.replace('/(tabs)')}>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => router.replace('/(tabs)/index')}
+        >
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.topTitle}>Avaliar item</Text>

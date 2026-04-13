@@ -40,6 +40,9 @@ class OpenAIService:
         response = await self.client.chat.completions.create(
             model="gpt-4o",
             max_tokens=1024,
+            # temperature baixo = respostas mais determinísticas e consistentes
+            # 0.2 ainda permite variação natural mas elimina alucinações de preço
+            temperature=0.2,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {

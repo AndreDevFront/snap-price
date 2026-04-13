@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '../src/services/api';
 import { useAuthStore } from '../src/store/useAuthStore';
+import Toast from 'react-native-toast-message';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,7 +31,26 @@ export default function LoginScreen() {
     },
     onSuccess: ({ token, user }) => {
       setAuth(token, user);
+      const firstName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'Usuário';
+      Toast.show({
+        type: 'success',
+        text1: isRegister ? 'Conta criada com sucesso!' : `Bem-vindo de volta, ${firstName}!`,
+        text2: isRegister ? 'Aproveite o SnapPrice 🎉' : 'Pronto para avaliar seus itens',
+        visibilityTime: 3000,
+      });
       router.replace('/(tabs)');
+    },
+    onError: (error: Error) => {
+      const msg = error.message?.toLowerCase() ?? '';
+      const isCredentials = msg.includes('401') || msg.includes('unauthorized') || msg.includes('invalid');
+      Toast.show({
+        type: 'error',
+        text1: isRegister ? 'Erro ao criar conta' : 'Falha no login',
+        text2: isCredentials
+          ? 'E-mail ou senha incorretos'
+          : 'Verifique sua conexão e tente novamente',
+        visibilityTime: 4000,
+      });
     },
   });
 

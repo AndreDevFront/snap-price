@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, FlashMode, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -54,29 +55,37 @@ export default function CameraScreen() {
   }
 
   async function handleGallery() {
-    try {
-      const ImagePicker = await import('expo-image-picker');
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permissão necessária',
-          'Precisamos de acesso à sua galeria para selecionar uma foto.',
-        );
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
-        allowsEditing: false,
-      });
-      if (!result.canceled && result.assets[0]?.uri) {
-        analyze(result.assets[0].uri);
-      }
-    } catch {
+    if (isLoading) return;
+
+    // Solicita permissão da galeria
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status === 'denied') {
       Alert.alert(
-        'Galeria indisponível',
-        'Feche o app completamente, reabra e tente novamente.',
+        'Permissão negada',
+        'Para usar a galeria, acesse Configurações do celular > Apps > SnapPrice > Permissões e ative o acesso a Fotos.',
+        [{ text: 'OK' }],
       );
+      return;
+    }
+
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permissão necessária',
+        'Precisamos de acesso à sua galeria para selecionar uma foto.',
+        [{ text: 'Cancelar', style: 'cancel' }],
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: false,
+    });
+
+    if (!result.canceled && result.assets[0]?.uri) {
+      analyze(result.assets[0].uri);
     }
   }
 

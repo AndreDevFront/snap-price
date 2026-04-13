@@ -152,10 +152,10 @@ Write-Host ($out | Out-String).Trim()
 Write-Ok "Docker Compose iniciado"
 
 # ------------------------------------------------------------
-# 8. Health check
+# 8. Health check (40 tentativas = ~80s)
 # ------------------------------------------------------------
 Write-Step "Aguardando API em ${apiUrl}/health ..."
-$maxTries = 20
+$maxTries = 40
 $attempt  = 0
 $ready    = $false
 while ($attempt -lt $maxTries -and -not $ready) {
@@ -169,8 +169,8 @@ while ($attempt -lt $maxTries -and -not $ready) {
 }
 
 if (-not $ready) {
-  Write-Warn "API nao respondeu. Verifique os logs com:"
-  Write-Warn "  wsl -d $WslDistro -e sh -c 'cd $WslProjectPath/apps/api && docker compose logs'"
+  Write-Warn "API nao respondeu em 80s. Verifique os logs com:"
+  Write-Warn "  wsl -d $WslDistro -e sh -c 'cd $WslProjectPath/apps/api && docker compose logs api'"
 } else {
   Write-Ok "API respondendo em $apiUrl"
 }
